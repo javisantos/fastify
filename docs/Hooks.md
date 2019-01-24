@@ -6,8 +6,9 @@ Hooks are registered with the `fastify.addHook` method and allow you to listen t
 
 ## Request/Response Hooks
 
-By using the hooks you can interact directly inside the lifecycle of Fastify. There are four different Hooks that you can use *(in order of execution)*:
+By using the hooks you can interact directly inside the lifecycle of Fastify. There are seven different Hooks that you can use *(in order of execution)*:
 - `'onRequest'`
+- `'preParsing'`
 - `'preValidation'`
 - `'preHandler'`
 - `'onError'`
@@ -17,6 +18,11 @@ By using the hooks you can interact directly inside the lifecycle of Fastify. Th
 Example:
 ```js
 fastify.addHook('onRequest', (request, reply, next) => {
+  // some code
+  next()
+})
+
+fastify.addHook('preParsing', (request, reply, next) => {
   // some code
   next()
 })
@@ -49,6 +55,16 @@ fastify.addHook('onResponse', (request, reply, next) => {
 Or `async/await`
 ```js
 fastify.addHook('onRequest', async (request, reply) => {
+  // some code
+  await asyncMethod()
+  // error occurred
+  if (err) {
+    throw new Error('some errors occurred.')
+  }
+  return
+})
+
+fastify.addHook('preParsing', async (request, reply) => {
   // some code
   await asyncMethod()
   // error occurred
@@ -109,7 +125,7 @@ fastify.addHook('onResponse', async (request, reply) => {
 **Notice:** in the `onRequest` and `preValidation` hooks, `request.body` will always be `null`, because the body parsing happens before the `preHandler` hook.
 
 [Request](https://github.com/fastify/fastify/blob/master/docs/Request.md) and [Reply](https://github.com/fastify/fastify/blob/master/docs/Reply.md) are the core Fastify objects.<br/>
-`next` if the function to continue with the [lifecycle](https://github.com/fastify/fastify/blob/master/docs/Lifecycle.md).
+`next` is the function to continue with the [lifecycle](https://github.com/fastify/fastify/blob/master/docs/Lifecycle.md).
 
 It is pretty easy to understand where each hook is executed by looking at the [lifecycle page](https://github.com/fastify/fastify/blob/master/docs/Lifecycle.md).<br>
 Hooks are affected by Fastify's encapsulation, and can thus be applied to selected routes. See the [Scopes](#scope) section for more information.
@@ -136,7 +152,7 @@ fastify.addHook('preHandler', (request, reply, next) => {
 
 This hook is useful if you need to do some custom error logging or add some specific header in case of error.<br/>
 It is not intended for changing the error, and calling `reply.send` will throw an exception.<br/>
-This hook will be executed only after the `customErrorHandler` has been executed, and only if the `customErrorHandler` sends back and error to the user *(Note that the default `customErrorHandler` always send back the error to the user)*.<br/>
+This hook will be executed only after the `customErrorHandler` has been executed, and only if the `customErrorHandler` sends back an error to the user *(Note that the default `customErrorHandler` always send back the error to the user)*.<br/>
 **Notice:** unlike the other hooks, pass an error to the `next` function is not supported.
 
 ```js

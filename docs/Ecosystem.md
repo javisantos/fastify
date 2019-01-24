@@ -29,7 +29,7 @@ Plugins maintained by the fastify team are listed under [Core](#core) while plug
 - [`fastify-oauth2`](https://github.com/fastify/fastify-oauth2) Wrap around [`simple-oauth2`](https://github.com/lelylan/simple-oauth2).
 - [`fastify-postgres`](https://github.com/fastify/fastify-postgres) Fastify PostgreSQL connection plugin, with this you can share the same PostgreSQL connection pool in every part of your server.
 - [`fastify-rate-limit`](https://github.com/fastify/fastify-rate-limit) A low overhead rate limiter for your routes.
-- [`fastify-react`](https://github.com/fastify/fastify-react) React server side rendering support for Fastify with [Next](https://github.com/zeit/next.js/).
+- [`fastify-nextjs`](https://github.com/fastify/fastify-nextjs) React server side rendering support for Fastify with [Next](https://github.com/zeit/next.js/).
 - [`fastify-redis`](https://github.com/fastify/fastify-redis) Fastify Redis connection plugin, with which you can share the same Redis connection across every part of your server.
 - [`fastify-reply-from`](https://github.com/fastify/fastify-reply-from) Plugin to forward the current http request to another server.
 - [`fastify-routes`](https://github.com/fastify/fastify-routes) Plugin that provides a `Map` of routes.
@@ -53,6 +53,7 @@ Plugins maintained by the fastify team are listed under [Core](#core) while plug
 - [`fastify-cloudevents`](https://github.com/smartiniOnGitHub/fastify-cloudevents) Fastify plugin to generate and forward Fastify events in the Cloudevents format.
 - [`fastify-cockroachdb`](https://github.com/alex-ppg/fastify-cockroachdb) Fastify plugin to connect to a CockroachDB PostgreSQL instance via the Sequelize ORM.
 - [`fastify-couchdb`](https://github.com/nigelhanlon/fastify-couchdb) Fastify plugin to add CouchDB support via [nano](https://github.com/apache/nano).
+- [`fastify-csrf`](https://github.com/Tarang11/fastify-csrf) A csrf plugin for Fastify.
 - [`fastify-datastore`](https://github.com/now-ims/now-fastify-datastore) Fastify plugin for [Google Cloud Datastore](https://cloud.google.com/nodejs/docs/reference/datastore/1.4.x/).
 - [`fastify-dynamodb`](https://github.com/matrus2/fastify-dynamodb) AWS DynamoDB plugin for Fastify. It exposes [AWS.DynamoDB.DocumentClient()](https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/DynamoDB/DocumentClient.html) object.
 - [`fastify-error-page`](https://github.com/hemerajs/fastify-error-page) Fastify plugin to print errors in structured HTML to the browser.
@@ -60,9 +61,11 @@ Plugins maintained by the fastify team are listed under [Core](#core) while plug
 - [`fastify-file-upload`](https://github.com/huangang/fastify-file-upload) Fastify plugin for uploading files.
 - [`fastify-firebase-auth`](https://github.com/oxsav/fastify-firebase-auth) Firebase Authentication for Fastify supporting all of the methods relating to the authentication API.
 - [`fastify-firestore`](https://github.com/now-ims/fastify-firestore) Fastify plugin for [Google Cloud Firestore](https://cloud.google.com/nodejs/docs/reference/firestore/0.13.x/).
+- [`fastify-gql`](https://github.com/mcollina/fastify-gql) A GraphQL server implementation for Fastify with caching and [`graphql-jit`](https://github.com/ruiaraujo/graphql-jit).
 - [`fastify-graceful-shutdown`](https://github.com/hemerajs/fastify-graceful-shutdown) Shutdown Fastify gracefully and asynchronously.
 - [`fastify-healthcheck`](https://github.com/smartiniOnGitHub/fastify-healthcheck) Fastify plugin to serve an health check route and a probe script.
 - [`fastify-hemera`](https://github.com/hemerajs/fastify-hemera) Fastify Hemera plugin, for writing reliable & fault-tolerant microservices with [nats.io](https://nats.io/).
+- [`fastify-http2https`](https://github.com/lolo32/fastify-http2https) Redirect HTTP requests to HTTPS, both using the same port number, or different response on HTTP and HTTPS.
 - [`fastify-jwt-authz`](https://github.com/Ethan-Arrowood/fastify-jwt-authz) JWT user scope verifier.
 - [`fastify-jwt-webapp`](https://github.com/charlesread/fastify-jwt-webapp) JWT authentication for fastify-based web apps.
 - [`fastify-knexjs`](https://github.com/chapuletta/fastify-knexjs) Fastify plugin for support KnexJS Query Builder.
@@ -84,6 +87,7 @@ Plugins maintained by the fastify team are listed under [Core](#core) while plug
 - [`fastify-register-routes`](https://github.com/israeleriston/fastify-register-routes) Plugin to automatically load routes from a specified path and optionally limit loaded file names by a regular expression.
 - [`fastify-response-time`](https://github.com/lolo32/fastify-response-time) Add `X-Response-Time` header at each request for Fastify, in milliseconds.
 - [`fastify-rob-config`](https://github.com/jeromemacias/fastify-rob-config) Fastify Rob-Config integration.
+- [`fastify-sentry`](https://github.com/alex-ppg/fastify-sentry) Fastify plugin to add the Sentry SDK error handler to requests.
 - [`fastify-sequelize`](https://github.com/lyquocnam/fastify-sequelize) Fastify plugin work with Sequelize (adapter for NodeJS -> Sqlite, Mysql, Mssql, Postgres).
 - [`fastify-server-session`](https://github.com/jsumners/fastify-server-session) A session plugin with support for arbitrary backing caches via `fastify-caching`.
 - [`fastify-session`](https://github.com/SerayaEryn/fastify-session) a session plugin for Fastify.

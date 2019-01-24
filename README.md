@@ -102,6 +102,10 @@ fastify generate
 
 For more information, see the [Fastify CLI documentation](https://github.com/fastify/fastify-cli).
 
+### Fastify v1.x
+
+Code for Fastify's **v1.x** is in [Branch 1.x](https://github.com/fastify/fastify/tree/1.x), so all Fastify 1.x related changes should be based on **`branch 1.x`**.
+
 > ## Note
 > `.listen` binds to the local host, `localhost`, interface by default (`127.0.0.1` or `::1`, depending on the operating system configuration). If you are running Fastify in a container (Docker, [GCP](https://cloud.google.com/), etc.), you may need to bind to `0.0.0.0`. Be careful when deciding to listen on all interfaces; it comes with inherent [security risks](https://web.archive.org/web/20170711105010/https://snyk.io/blog/mongodb-hack-and-secure-defaults/). 
 > See [the documentation](https://github.com/fastify/fastify/blob/master/docs/Server.md#listen) for more information.
@@ -116,27 +120,25 @@ For more information, see the [Fastify CLI documentation](https://github.com/fas
 
 ### Benchmarks
 
-__Machine:__ Intel Xeon E5-2686 v4 @ 2.30GHz (4 cores, 8 threads), 16GiB RAM (Amazon EC2 m4.xlarge)
+__Machine:__ MacBook Pro (Late 2016 | 2,7 GHz Intel Core i7 | 16 GB 2133 MHz LPDDR3)
 
-__Method:__: `autocannon -c 100 -d 40 -p 10 localhost:3000` * 2, taking the second average
+__Method:__: `autocannon -c 100 -d 5 -p 10 localhost:3000` * 2, taking the second average
 
 | Framework          | Version                    | Router?      |  Requests/sec |
 | :----------------- | :------------------------- | :----------: | ------------: |
-| hapi               | 17.5.1                     | &#10003;     | 22,139        |
-| Express            | 4.16.3                     | &#10003;     | 22,265        |
-| Restify            | 7.1.0                      | &#10003;     | 23,604        |
-| Koa                | 2.5.1                      | &#10007;     | 25,378        |
-| **Fastify**        | **1.6.0**                  | **&#10003;** | **37,433**    |
+| hapi               | 17.8.1                     | &#10003;     | 26,497        |
+| Express            | 4.16.4                     | &#10003;     | 26,481        |
+| Restify            | 7.2.3                      | &#10003;     | 22,968        |
+| Koa                | 2.6.2                      | &#10007;     | 35,796        |
+| **Fastify**        | **1.13.1**                 | **&#10003;** | **45,846**    |
 | -                  |                            |              |               |
-| `http.Server`      | 8.11.2                      | &#10007;     | 29,855\*     |
+| `http.Server`      | 10.13.0	                  | &#10007;     | 43,542\*      |
 
 Benchmarks taken using https://github.com/fastify/benchmarks. This is a
 synthetic, "hello world" benchmark that aims to evaluate the framework
 overhead. The overhead that each framework has on your application
 depends on your application, you should __always__ benchmark if performance
 matters to you.
-
-\* Node.js core is slower than Fastify because of https://github.com/nodejs/node/issues/20798. The problem has already been solved in Node.js 10.
 
 ## Documentation
 * <a href="https://github.com/fastify/fastify/blob/master/docs/Getting-Started.md"><code><b>Getting Started</b></code></a>
@@ -150,7 +152,7 @@ matters to you.
 * <a href="https://github.com/fastify/fastify/blob/master/docs/Lifecycle.md"><code><b>Lifecycle</b></code></a>
 * <a href="https://github.com/fastify/fastify/blob/master/docs/Reply.md"><code><b>Reply</b></code></a>
 * <a href="https://github.com/fastify/fastify/blob/master/docs/Request.md"><code><b>Request</b></code></a>
-* <a href="https://github.com/fastify/fastify/blob/master/docs/Error-Handling.md"><code><b>Error Handling</b></code></a>
+* <a href="https://github.com/fastify/fastify/blob/master/docs/Errors.md"><code><b>Errors</b></code></a>
 * <a href="https://github.com/fastify/fastify/blob/master/docs/ContentTypeParser.md"><code><b>Content Type Parser</b></code></a>
 * <a href="https://github.com/fastify/fastify/blob/master/docs/Plugins.md"><code><b>Plugins</b></code></a>
 * <a href="https://github.com/fastify/fastify/blob/master/docs/Testing.md"><code><b>Testing</b></code></a>
@@ -184,6 +186,7 @@ Team members are listed in alphabetical order.
 ### Collaborators
 
 * [__Tommaso Allevi__](https://github.com/allevo), <https://twitter.com/allevitommaso>, <https://www.npmjs.com/~allevo>
+* [__Ethan Arrowood__](https://github.com/Ethan-Arrowood/), <https://twitter.com/arrowoodtech>, <https://www.npmjs.com/~ethan_arrowood>
 * [__Dustin Deus__](https://github.com/StarpTech), <https://twitter.com/dustindeus>, <https://www.npmjs.com/~starptech>
 * [__Trivikram Kamat__](https://github.com/trivikr), <https://twitter.com/trivikram>, <https://www.npmjs.com/~trivikr>
 * [__Luciano Mammino__](https://github.com/lmammino), <https://twitter.com/loige>, <https://www.npmjs.com/~lmammino>
@@ -206,3 +209,9 @@ Past Sponsors:
 ## License
 
 Licensed under [MIT](./LICENSE).
+
+For your convenience, here is a list of all the licenses of our production dependencies:
+- MIT
+- ISC
+- BSD-3-Clause
+- BSD-2-Clause

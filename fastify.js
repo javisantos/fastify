@@ -26,6 +26,10 @@ const {
   kFourOhFourContext
 } = require('./lib/symbols.js')
 
+const {
+  codes: { FST_ERR_HTTP2_INVALID_VERSION }
+} = require('./lib/errors')
+
 const Reply = require('./lib/reply')
 const Request = require('./lib/request')
 const supportedMethods = ['DELETE', 'GET', 'HEAD', 'PATCH', 'POST', 'PUT', 'OPTIONS']
@@ -37,7 +41,7 @@ const buildSchemaCompiler = validation.buildSchemaCompiler
 const decorator = require('./lib/decorate')
 const ContentTypeParser = require('./lib/contentTypeParser')
 const { Hooks, hookRunner, hookIterator, buildHooks } = require('./lib/hooks')
-const Schemas = require('./lib/schemas')
+const { Schemas, buildSchemas } = require('./lib/schemas')
 const loggerUtils = require('./lib/logger')
 const pluginUtils = require('./lib/pluginUtils')
 const reqIdGenFactory = require('./lib/reqIdGenFactory')
@@ -438,9 +442,9 @@ function build (options) {
       return
     }
 
-    if (reply.context.preValidation !== null) {
+    if (reply.context.preParsing !== null) {
       hookRunner(
-        reply.context.preValidation,
+        reply.context.preParsing,
         hookIterator,
         reply.request,
         reply,
@@ -467,6 +471,8 @@ function build (options) {
     instance[kRoutePrefix] = buildRoutePrefix(instance[kRoutePrefix], opts.prefix)
     instance[kLogLevel] = opts.logLevel || instance[kLogLevel]
     instance[kMiddlewares] = old[kMiddlewares].slice()
+    instance[kSchemas] = buildSchemas(old[kSchemas])
+    instance.getSchemas = instance[kSchemas].getSchemas.bind(instance[kSchemas])
     instance[pluginUtils.registeredPlugins] = Object.create(instance[pluginUtils.registeredPlugins])
 
     if (opts.prefix) {
@@ -639,6 +645,7 @@ function build (options) {
         beforeHandlerWarning()
         opts.preHandler = opts.beforeHandler
       }
+
       if (opts.preHandler) {
         if (Array.isArray(opts.preHandler)) {
           opts.preHandler = opts.preHandler.map(hook => hook.bind(_fastify))
@@ -655,6 +662,14 @@ function build (options) {
         }
       }
 
+      if (opts.preParsing) {
+        if (Array.isArray(opts.preParsing)) {
+          opts.preParsing = opts.preParsing.map(hook => hook.bind(_fastify))
+        } else {
+          opts.preParsing = opts.preParsing.bind(_fastify)
+        }
+      }
+
       try {
         router.on(opts.method, url, { version: opts.version }, routeHandler, context)
       } catch (err) {
@@ -663,17 +678,19 @@ function build (options) {
       }
 
       // It can happen that a user register a plugin with some hooks/middlewares *after*
-      // the route registration. To be sure to load also that hoooks/middlwares,
+      // the route registration. To be sure to load also that hooks/middlewares,
       // we must listen for the avvio's preReady event, and update the context object accordingly.
       avvio.once('preReady', () => {
         const onRequest = _fastify[kHooks].onRequest
         const onResponse = _fastify[kHooks].onResponse
         const onSend = _fastify[kHooks].onSend
         const onError = _fastify[kHooks].onError
+        const preParsing = _fastify[kHooks].preParsing.concat(opts.preParsing || [])
         const preValidation = _fastify[kHooks].preValidation.concat(opts.preValidation || [])
         const preHandler = _fastify[kHooks].preHandler.concat(opts.preHandler || [])
 
         context.onRequest = onRequest.length ? onRequest : null
+        context.preParsing = preParsing.length ? preParsing : null
         context.preValidation = preValidation.length ? preValidation : null
         context.preHandler = preHandler.length ? preHandler : null
         context.onSend = onSend.length ? onSend : null
@@ -732,8 +749,8 @@ function build (options) {
 
     if (cb) {
       this.ready(err => {
-        if (err) throw err
-        return lightMyRequest(httpHandler, opts, cb)
+        if (err) cb(err, null)
+        else lightMyRequest(httpHandler, opts, cb)
       })
     } else {
       return this.ready()
@@ -784,6 +801,7 @@ function build (options) {
   function addSchema (name, schema) {
     throwIfAlreadyStarted('Cannot call "addSchema" when fastify instance is already started!')
     this[kSchemas].add(name, schema)
+    this[kChildren].forEach(child => child.addSchema(name, schema))
     return this
   }
 
@@ -822,7 +840,7 @@ function build (options) {
       message: 'Client Error',
       statusCode: 400
     })
-    log.error({ err }, 'client error')
+    log.debug({ err }, 'client error')
     socket.end(`HTTP/1.1 400 Bad Request\r\nContent-Length: ${body.length}\r\nContent-Type: application/json\r\n\r\n${body}`)
   }
 
@@ -924,6 +942,7 @@ function build (options) {
       const context = this[kFourOhFourContext]
 
       const onRequest = this[kHooks].onRequest
+      const preParsing = this[kHooks].preParsing.concat(opts.preParsing || [])
       const preValidation = this[kHooks].preValidation.concat(opts.preValidation || [])
       const preHandler = this[kHooks].preHandler.concat(opts.beforeHandler || opts.preHandler || [])
       const onSend = this[kHooks].onSend
@@ -931,6 +950,7 @@ function build (options) {
       const onResponse = this[kHooks].onResponse
 
       context.onRequest = onRequest.length ? onRequest : null
+      context.preParsing = preParsing.length ? preParsing : null
       context.preValidation = preValidation.length ? preValidation : null
       context.preHandler = preHandler.length ? preHandler : null
       context.onSend = onSend.length ? onSend : null
@@ -989,7 +1009,7 @@ function http2 () {
   try {
     return require('http2')
   } catch (err) {
-    console.error('http2 is available only from node >= 8.8.1')
+    throw new FST_ERR_HTTP2_INVALID_VERSION()
   }
 }
 

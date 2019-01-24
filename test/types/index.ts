@@ -46,11 +46,20 @@ const cors = require('cors')
     next()
   })
 
+  logAllServer.addHook('preParsing', (req, reply, next) => {
+    next()
+  })
+
+  logAllServer.addHook('preValidation', (req, reply, next) => {
+    next()
+  })
+
   // other simple options
   const otherServer = fastify({
     ignoreTrailingSlash: true,
     bodyLimit: 1000,
-    maxParamLength: 200
+    maxParamLength: 200,
+    querystringParser: (str: string) => ({ str: str, strArray: [str] })
   })
 
   // custom types
@@ -137,27 +146,41 @@ server.addHook('onClose', (instance, done) => {
 server.addHook('onRoute', (opts) => {
 })
 
-const opts: fastify.RouteShorthandOptions<http2.Http2Server, http2.Http2ServerRequest, http2.Http2ServerResponse> = {
-  schema: {
-    response: {
-      200: {
-        type: 'object',
-        properties: {
-          hello: {
-            type: 'string'
-          }
+const schema: fastify.RouteSchema = {
+  body: {
+    type: 'object'
+  },
+  querystring: {
+    type: 'object'
+  },
+  params: {
+    type: 'object'
+  },
+  headers: {
+    type: 'object'
+  },
+  response: {
+    200: {
+      type: 'object',
+      properties: {
+        hello: {
+          type: 'string'
         }
-      },
-      '2xx': {
-        type: 'object',
-        properties: {
-          hello: {
-            type: 'string'
-          }
+      }
+    },
+    '2xx': {
+      type: 'object',
+      properties: {
+        hello: {
+          type: 'string'
         }
       }
     }
-  },
+  }
+}
+
+const opts: fastify.RouteShorthandOptions<http2.Http2Server, http2.Http2ServerRequest, http2.Http2ServerResponse> = {
+  schema,
   preValidation: [
     (request, reply, next) => {
       request.log.info(`pre validation for "${request.raw.url}" ${request.id}`)
@@ -224,6 +247,10 @@ server
     const stream = fs.createReadStream(process.cwd() + '/examples/plugin.js', 'utf8')
     reply.code(200).send(stream)
   })
+  .get('/redirect', function (req, reply) {
+    reply.redirect('/other')
+    reply.redirect(301, '/something')
+  })
   .post('/', opts, function (req, reply) {
     reply
       .headers({ 'Content-Type': 'application/json' })
@@ -266,6 +293,36 @@ server
   })
   .all('/all/with-opts', opts, function (req, reply) {
     reply.send(req.headers)
+  })
+  .route({
+    method: 'GET',
+    url: '/headers',
+    preHandler: (_req, reply, done) => {
+      reply.header('E-tag', 'xB6392T=')
+      done()
+    },
+    handler: (req, reply) => {
+      const lastModified = req.headers['last-modified']
+
+      if (reply.hasHeader('E-tag') && lastModified === reply.getHeader('E-tag')) {
+        reply.status(304).send()
+        return
+      }
+
+      reply.status(200).send({ hello: 'world' })
+    }
+  })
+  .register((instance, _opts, done) => {
+    instance.setNotFoundHandler((req, reply) => {
+      reply
+        .status(404)
+        .type('text/plain')
+        .send('Route not found.')
+    })
+    done()
+  })
+  .get('/deprecatedpath/*', (req, reply) => {
+    reply.callNotFound()
   })
 
 // Generics example
@@ -339,7 +396,14 @@ server.setNotFoundHandler((req, reply) => {
 })
 
 server.setErrorHandler((err, request, reply) => {
-  reply.send(err)
+  if (err.statusCode) {
+    reply.code(err.statusCode)
+  }
+  if (err.validation) {
+    reply.send(err.validation)
+  } else {
+    reply.send(err)
+  }
 })
 
 server.listen(3000, err => {
@@ -466,3 +530,21 @@ server.after(function (err: Error, context: fastify.FastifyInstance<http2.Http2S
     logger: process.env.NODE_ENV === 'dev'
   })
 }
+
+server.log.debug('Should log debug message', [])
+server.log.debug({ log: 'object' }, 'Should log debug message', [])
+server.log.error('Should log error message', [])
+server.log.error({ log: 'object' }, 'Should log error message', [])
+server.log.fatal('Should log fatal message', [])
+server.log.fatal({ log: 'object' }, 'Should log fatal message', [])
+server.log.info('Should log info message', [])
+server.log.info({ log: 'object' }, 'Should log info message', [])
+server.log.trace('Should log trace message', [])
+server.log.trace({ log: 'object' }, 'Should log trace message', [])
+server.log.warn('Should log warn message', [])
+server.log.warn({ log: 'object' }, 'Should log warn message', [])
+
+const server2 = fastify()
+server2.close().then(() => {})
+const server3 = fastify()
+server3.close(() => {})

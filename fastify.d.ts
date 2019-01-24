@@ -3,13 +3,11 @@
 /* eslint space-infix-ops: 0 */
 
 /// <reference types="node" />
-/// <reference types="pino" />
 
 import * as http from 'http'
 import * as http2 from 'http2'
 import * as https from 'https'
 import * as tls from 'tls'
-import * as pino from 'pino'
 
 declare function fastify<
   HttpServer extends (http.Server | http2.Http2Server) = http.Server,
@@ -21,11 +19,12 @@ declare function fastify(opts?: fastify.ServerOptionsAsSecureHttp): fastify.Fast
 declare function fastify(opts?: fastify.ServerOptionsAsHttp2): fastify.FastifyInstance<http2.Http2Server, http2.Http2ServerRequest, http2.Http2ServerResponse>;
 declare function fastify(opts?: fastify.ServerOptionsAsSecureHttp2): fastify.FastifyInstance<http2.Http2SecureServer, http2.Http2ServerRequest, http2.Http2ServerResponse>;
 
+// eslint-disable-next-line no-redeclare
 declare namespace fastify {
 
-  type Plugin < HttpServer, HttpRequest, HttpResponse, T > = (instance: FastifyInstance< HttpServer, HttpRequest, HttpResponse >, opts: T, callback: (err?: Error) => void) => void
+  type Plugin < HttpServer, HttpRequest, HttpResponse, T > = (instance: FastifyInstance< HttpServer, HttpRequest, HttpResponse >, opts: T, callback: (err?: FastifyError) => void) => void
 
-  type Middleware < HttpServer, HttpRequest, HttpResponse > = (this: FastifyInstance<HttpServer, HttpRequest, HttpResponse>, req: HttpRequest, res: HttpResponse, callback: (err?: Error) => void) => void
+  type Middleware < HttpServer, HttpRequest, HttpResponse > = (this: FastifyInstance<HttpServer, HttpRequest, HttpResponse>, req: HttpRequest, res: HttpResponse, callback: (err?: FastifyError) => void) => void
 
   type DefaultQuery = { [k: string]: any }
   type DefaultParams = { [k: string]: any }
@@ -33,6 +32,42 @@ declare namespace fastify {
   type DefaultBody = any
 
   type HTTPMethod = 'DELETE' | 'GET' | 'HEAD' | 'PATCH' | 'POST' | 'PUT' | 'OPTIONS'
+
+  interface ValidationResult {
+    keyword: string;
+    dataPath: string;
+    schemaPath: string;
+    params: {
+      [type: string]: string;
+    },
+    message: string;
+  }
+
+  /**
+   * Fastify custom error
+   */
+  interface FastifyError extends Error {
+    statusCode?: number;
+    /**
+     * Validation errors
+     */
+    validation?: Array<ValidationResult>;
+  }
+
+  interface Logger {
+    fatal(msg: string, ...args: any[]): void;
+    fatal(obj: {}, msg?: string, ...args: any[]): void;
+    error(msg: string, ...args: any[]): void;
+    error(obj: {}, msg?: string, ...args: any[]): void;
+    warn(msg: string, ...args: any[]): void;
+    warn(obj: {}, msg?: string, ...args: any[]): void;
+    info(msg: string, ...args: any[]): void;
+    info(obj: {}, msg?: string, ...args: any[]): void;
+    debug(msg: string, ...args: any[]): void;
+    debug(obj: {}, msg?: string, ...args: any[]): void;
+    trace(msg: string, ...args: any[]): void;
+    trace(obj: {}, msg?: string, ...args: any[]): void;
+  }
 
   type FastifyMiddleware<
   HttpServer,
@@ -100,22 +135,26 @@ declare namespace fastify {
 
     raw: HttpRequest
     req: HttpRequest
-    log: pino.Logger
+    log: Logger
   }
 
   /**
    * Response object that is used to build and send a http response
    */
   interface FastifyReply<HttpResponse> {
-    code: (statusCode: number) => FastifyReply<HttpResponse>
-    status: (statusCode: number) => FastifyReply<HttpResponse>
-    header: (name: string, value: any) => FastifyReply<HttpResponse>
-    headers: (headers: { [key: string]: any }) => FastifyReply<HttpResponse>
-    type: (contentType: string) => FastifyReply<HttpResponse>
-    redirect: (statusCode: number, url: string) => FastifyReply<HttpResponse>
-    serialize: (payload: any) => string
-    serializer: (fn: Function) => FastifyReply<HttpResponse>
-    send: (payload?: any) => FastifyReply<HttpResponse>
+    code(statusCode: number): FastifyReply<HttpResponse>
+    status(statusCode: number): FastifyReply<HttpResponse>
+    header(name: string, value: any): FastifyReply<HttpResponse>
+    headers(headers: { [key: string]: any }): FastifyReply<HttpResponse>
+    getHeader(name: string): string | undefined
+    hasHeader(name: string): boolean
+    callNotFound(): void
+    type(contentType: string): FastifyReply<HttpResponse>
+    redirect(url: string): FastifyReply<HttpResponse>
+    redirect(statusCode: number, url: string): FastifyReply<HttpResponse>
+    serialize(payload: any): string
+    serializer(fn: Function): FastifyReply<HttpResponse>
+    send(payload?: any): FastifyReply<HttpResponse>
     sent: boolean
     res: HttpResponse
     context: FastifyContext
@@ -124,9 +163,10 @@ declare namespace fastify {
   interface ServerOptions {
     ignoreTrailingSlash?: boolean,
     bodyLimit?: number,
-    logger?: pino.LoggerOptions | boolean,
+    logger?: any,
     trustProxy?: string | number | boolean | Array<string> | TrustProxyFunction,
     maxParamLength?: number,
+    querystringParser?: (str: string) => { [key: string]: string | string[] },
   }
   interface ServerOptionsAsSecure extends ServerOptions {
     https: http2.SecureServerOptions
@@ -147,6 +187,7 @@ declare namespace fastify {
     body?: JSONSchema
     querystring?: JSONSchema
     params?: JSONSchema
+    headers?: JSONSchema
     response?: {
       [code: number]: JSONSchema,
       [code: string]: JSONSchema
@@ -244,7 +285,7 @@ declare namespace fastify {
    */
   interface FastifyInstance<HttpServer = http.Server, HttpRequest = http.IncomingMessage, HttpResponse = http.ServerResponse> {
     server: HttpServer
-    log: pino.Logger
+    log: Logger
 
     /**
      * Adds a route to the server
@@ -415,6 +456,7 @@ declare namespace fastify {
      * Call this function to close the server instance and run the "onClose" callback
      */
     close(closeListener: () => void): void
+    close<T = any>(): Promise<T>
 
     /**
      * Apply the given middleware to all incoming requests
@@ -458,12 +500,6 @@ declare namespace fastify {
     decorateRequest(name: string, decoration: any, dependencies?: Array<string>): FastifyInstance<HttpServer, HttpRequest, HttpResponse>
 
     /**
-     * Extends the standard server error. Return an object with the properties you'd
-     * like added to the error
-     */
-    extendServerError(extendFn: (error: Error) => Object): FastifyInstance<HttpServer, HttpRequest, HttpResponse>
-
-    /**
      * Determines if the given named decorator is available
      */
     hasDecorator(name: string): boolean
@@ -484,7 +520,12 @@ declare namespace fastify {
     addHook(name: 'onRequest', hook: FastifyMiddleware<HttpServer, HttpRequest, HttpResponse>): FastifyInstance<HttpServer, HttpRequest, HttpResponse>
 
     /**
-     * Add a hook that is triggered after the onRequest hook and middlewares, but before the validation
+     * Add a hook that is triggered after the onRequest hook and middlewares, but before body parsing
+     */
+    addHook(name: 'preParsing', hook: FastifyMiddleware<HttpServer, HttpRequest, HttpResponse>): FastifyInstance<HttpServer, HttpRequest, HttpResponse>
+
+    /**
+     * Add a hook that is triggered after the onRequest, middlewares, and body parsing, but before the validation
      */
     addHook(name: 'preValidation', hook: FastifyMiddleware<HttpServer, HttpRequest, HttpResponse>): FastifyInstance<HttpServer, HttpRequest, HttpResponse>
 
@@ -503,7 +544,7 @@ declare namespace fastify {
     /**
      * Hook that is fired if `reply.send` is invoked with an Error
      */
-    addHook(name: 'onError', hook: (this: FastifyInstance<HttpServer, HttpRequest, HttpResponse>, req: FastifyRequest<HttpRequest>, reply: FastifyReply<HttpResponse>, error: Error, done: () => void) => void): FastifyInstance<HttpServer, HttpRequest, HttpResponse>
+    addHook(name: 'onError', hook: (this: FastifyInstance<HttpServer, HttpRequest, HttpResponse>, req: FastifyRequest<HttpRequest>, reply: FastifyReply<HttpResponse>, error: FastifyError, done: () => void) => void): FastifyInstance<HttpServer, HttpRequest, HttpResponse>
 
      /**
      * Hook that is called when a response is about to be sent to a client
@@ -541,7 +582,7 @@ declare namespace fastify {
     /**
      * Set a function that will be called whenever an error happens
      */
-    setErrorHandler(handler: (error: Error, request: FastifyRequest<HttpRequest>, reply: FastifyReply<HttpResponse>) => void): void
+    setErrorHandler(handler: (error: FastifyError, request: FastifyRequest<HttpRequest>, reply: FastifyReply<HttpResponse>) => void): void
 
     /**
      * Set the schema compiler for all routes.

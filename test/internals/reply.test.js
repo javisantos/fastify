@@ -903,3 +903,77 @@ test('.status() is an alias for .code()', t => {
     t.is(res.statusCode, 418)
   })
 })
+
+test('reply.header setting multiple cookies as multiple Set-Cookie headers', t => {
+  t.plan(7)
+
+  const fastify = require('../../')()
+
+  fastify.get('/headers', function (req, reply) {
+    reply
+      .header('set-cookie', 'one')
+      .header('set-cookie', 'two')
+      .header('set-cookie', 'three')
+      .header('set-cookie', ['four', 'five', 'six'])
+      .send({})
+  })
+
+  fastify.listen(0, err => {
+    t.error(err)
+    fastify.server.unref()
+
+    sget({
+      method: 'GET',
+      url: 'http://localhost:' + fastify.server.address().port + '/headers'
+    }, (err, response, body) => {
+      t.error(err)
+      t.ok(response.headers['set-cookie'])
+      t.strictDeepEqual(response.headers['set-cookie'], ['one', 'two', 'three', 'four', 'five', 'six'])
+    })
+  })
+
+  fastify.inject('/headers', (error, response) => {
+    t.error(error)
+    t.ok(response.headers['set-cookie'])
+    t.strictDeepEqual(response.headers['set-cookie'], ['one', 'two', 'three', 'four', 'five', 'six'])
+  })
+})
+
+test('should throw error when passing falsy value to reply.sent', t => {
+  t.plan(3)
+  const fastify = require('../..')()
+
+  fastify.get('/', function (req, reply) {
+    try {
+      reply.sent = false
+    } catch (err) {
+      t.strictEqual(err.message, 'FST_ERR_REP_SENT_VALUE: The only possible value for reply.sent is true.')
+      reply.send()
+    }
+  })
+
+  fastify.inject('/', (err, res) => {
+    t.error(err)
+    t.pass()
+  })
+})
+
+test('should throw error when attempting to set reply.sent more than once', t => {
+  t.plan(3)
+  const fastify = require('../..')()
+
+  fastify.get('/', function (req, reply) {
+    reply.sent = true
+    try {
+      reply.sent = true
+    } catch (err) {
+      t.strictEqual(err.message, 'FST_ERR_REP_ALREADY_SENT: Reply was already sent.')
+    }
+    reply.res.end()
+  })
+
+  fastify.inject('/', (err, res) => {
+    t.error(err)
+    t.pass()
+  })
+})
